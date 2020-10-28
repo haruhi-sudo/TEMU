@@ -5,18 +5,3 @@
       10:   00 22 40 24         and   $t0,   $at,   $v0
       14:   00 22 40 25         or   $t0,   $at,   $v0
       18:   4a 00 00 00         or   $t0,   $at,   $v0
-[./temu/src/monitor/expr.c,109,make_token] match rules[12] = "\$zero|\$at|\$v0|v1|\$a0|\$a1|\$a2|\$a3|\$t0|\$t1|\$t2|\$t3|\$t4|\$t5|\$t6|\$t7|\$s0|\$s1|\$s2|\$s3|\$s4|\$s5|\$s6|\$s7|\$t8|\$t9|\$k0|\$k1|\$gp|\$sp|\$fp|\$ra|\$pc" at position 0 with len 5: $zero
-[./temu/src/monitor/expr.c,109,make_token] match rules[12] = "\$zero|\$at|\$v0|v1|\$a0|\$a1|\$a2|\$a3|\$t0|\$t1|\$t2|\$t3|\$t4|\$t5|\$t6|\$t7|\$s0|\$s1|\$s2|\$s3|\$s4|\$s5|\$s6|\$s7|\$t8|\$t9|\$k0|\$k1|\$gp|\$sp|\$fp|\$ra|\$pc" at position 0 with len 5: $zero
-[./temu/src/monitor/expr.c,109,make_token] match rules[1] = "\+" at position 5 with len 1: +
-[./temu/src/monitor/expr.c,109,make_token] match rules[14] = "^-?[0-9]+[0-9]*" at position 6 with len 1: 4
-[./temu/src/monitor/expr.c,109,make_token] match rules[5] = "\(" at position 0 with len 1: (
-[./temu/src/monitor/expr.c,109,make_token] match rules[5] = "\(" at position 1 with len 1: (
-[./temu/src/monitor/expr.c,109,make_token] match rules[12] = "\$zero|\$at|\$v0|v1|\$a0|\$a1|\$a2|\$a3|\$t0|\$t1|\$t2|\$t3|\$t4|\$t5|\$t6|\$t7|\$s0|\$s1|\$s2|\$s3|\$s4|\$s5|\$s6|\$s7|\$t8|\$t9|\$k0|\$k1|\$gp|\$sp|\$fp|\$ra|\$pc" at position 2 with len 5: $zero
-[./temu/src/monitor/expr.c,109,make_token] match rules[1] = "\+" at position 7 with len 1: +
-[./temu/src/monitor/expr.c,109,make_token] match rules[14] = "^-?[0-9]+[0-9]*" at position 8 with len 1: 1
-[./temu/src/monitor/expr.c,109,make_token] match rules[6] = "\)" at position 9 with len 1: )
-[./temu/src/monitor/expr.c,109,make_token] match rules[3] = "\*" at position 10 with len 1: *
-[./temu/src/monitor/expr.c,109,make_token] match rules[14] = "^-?[0-9]+[0-9]*" at position 11 with len 1: 2
-[./temu/src/monitor/expr.c,109,make_token] match rules[6] = "\)" at position 12 with len 1: )
-[./temu/src/monitor/expr.c,109,make_token] match rules[1] = "\+" at position 13 with len 1: +
-[./temu/src/monitor/expr.c,109,make_token] match rules[14] = "^-?[0-9]+[0-9]*" at position 14 with len 1: 4

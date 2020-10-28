@@ -4,6 +4,7 @@
 #include "helper.h"
 #include "memory.h"
 #include "expr.h"
+#include "watchpoint.h"
 
 #include <stdlib.h>
 #include <readline/readline.h>
@@ -46,6 +47,20 @@ static int cmd_q(char *args)
 	return -1;
 }
 
+// 监视点
+static int cmd_w(char *args)
+{
+	new_wp(args);
+	return 1;
+}
+
+// 监视点
+static int cmd_dw(char *args)
+{
+	free_wp(atoi(args));
+	return 1;
+}
+
 static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
@@ -64,7 +79,9 @@ static struct
 	{"si", "单步执行", cmd_si},
 	{"info", "打印寄存器和监视点状态", cmd_info},
 	{"p", "表达式求值", cmd_p},
-	{"x", "读取内存", cmd_mr}
+	{"x", "读取内存", cmd_mr},
+	{"w", "监视点", cmd_w},
+	{"d", "删除监视点", cmd_dw}
 	/* TODO: Add more commands */
 
 };
@@ -125,6 +142,12 @@ static int cmd_info(char *args)
 	}
 	else if (args[0] == 'w')
 	{
+		WP *p = return_first();
+		while (p != NULL)
+		{
+			Log("断点号%d, 表达式%s, 表达式的值%d\n", p->NO, p->expr, p->expr_val);
+			p = p->next;
+		}
 		return 1;
 	}
 	else
@@ -139,24 +162,26 @@ static int cmd_p(char *args)
 // 读取内存
 static int cmd_mr(char *args)
 {
-	int i=0;
-	for (; ;i++)
+	int i = 0;
+	for (;; i++)
 	{
-		if(args[i] == ' ') break; 
+		if (args[i] == ' ')
+			break;
 	}
-	
-	int nbyte = atoi(args);
-	uint32_t addr = expr(args+i+1, (bool*)1);
 
-	for ( i = 0; i < nbyte; i++)
+	int nbyte = atoi(args);
+	uint32_t addr = expr(args + i + 1, (bool *)1);
+
+	for (i = 0; i < nbyte; i++)
 	{
-		printf("%#x:                                           %#x\n", addr+i*4 ,mem_read(addr+i*4, 4));
+		printf("%#x:                                           %#x\n", addr + i * 4, mem_read(addr + i * 4, 4));
 	}
 	return 1;
 }
 
 void ui_mainloop()
 {
+	init_wp_pool();
 	while (1)
 	{
 		char *str = rl_gets();

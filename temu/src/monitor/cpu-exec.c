@@ -1,6 +1,7 @@
 #include "monitor.h"
 #include "helper.h"
-
+#include "expr.h"
+#include "watchpoint.h"
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
  * This is useful when you use the `si' command.
@@ -61,7 +62,18 @@ void cpu_exec(volatile uint32_t n) {
 #endif
 
 		/* TODO: check watchpoints here. */
-
+		WP *p = return_first();
+		while (p != NULL)
+		{
+			//Log("断点号%d, 表达式%s, 表达式的值%d\n", p->NO, p->expr, p->expr_val);
+			//int new_expr_val = expr(p->expr, (bool*)1);
+			if(p->expr_val != expr(p->expr, (bool*)1)){
+				temu_state = STOP;
+				printf("触发监视点%d: %s, 此时表达式的值为: %d\n", p->NO, p->expr, expr(p->expr, (bool*)1));
+				p->expr_val = expr(p->expr, (bool*)1);
+			}
+			p = p->next;
+		}
 
 		if(temu_state != RUNNING) { return; }
 	}
