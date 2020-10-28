@@ -8,13 +8,14 @@
 #include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <string.h>
 
 void cpu_exec(uint32_t);
 
 void display_reg();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
-char* rl_gets()
+char *rl_gets()
 {
 	static char *line_read = NULL;
 
@@ -49,6 +50,7 @@ static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
 static int cmd_p(char *args);
+static int cmd_mr(char *args);
 
 static struct
 {
@@ -62,7 +64,7 @@ static struct
 	{"si", "单步执行", cmd_si},
 	{"info", "打印寄存器和监视点状态", cmd_info},
 	{"p", "表达式求值", cmd_p},
-	//{"m", "读取内存", cmd_mr}
+	{"x", "读取内存", cmd_mr}
 	/* TODO: Add more commands */
 
 };
@@ -128,20 +130,28 @@ static int cmd_info(char *args)
 	else
 		return -1;
 }
-
+// 打印表达式的值
 static int cmd_p(char *args)
 {
-	// if (args == NULL)
-	// {
-	// 	return 0;
-	// }
-	// int n = atoi(args[1]);
-	// mem_read(,n);
+	printf("%d\n", expr(args, (bool *)1));
+	return 1;
+}
+// 读取内存
+static int cmd_mr(char *args)
+{
+	int i=0;
+	for (; ;i++)
+	{
+		if(args[i] == ' ') break; 
+	}
 	
-	// cpu_exec(n);
-	// bool* succeess;
-	// *succeess = true;
-	expr(args,(bool*)1);
+	int nbyte = atoi(args);
+	uint32_t addr = expr(args+i+1, (bool*)1);
+
+	for ( i = 0; i < nbyte; i++)
+	{
+		printf("%#x:                                           %#x\n", addr+i*4 ,mem_read(addr+i*4, 4));
+	}
 	return 1;
 }
 

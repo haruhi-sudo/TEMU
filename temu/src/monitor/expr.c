@@ -1,18 +1,28 @@
 #include "temu.h"
-
+#include "reg.h"
 /* We use the POSIX regex functions to process regular expressions.
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <sys/types.h>
 #include <regex.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
 enum
 {
-	NOTYPE = 256,
 	EQ,
+	NOTEQ,
 	Dec,
 	lPar,
-	rPar
+	rPar,
+	Hex,
+	Reg,
+	NOT,
+	AND,
+	OR,
+	NOTYPE = 256
+
 	/* TODO: Add more token types */
 
 };
@@ -34,8 +44,15 @@ static struct rule
 	{"\\/", '/'},
 	{"\\(", lPar},
 	{"\\)", rPar},
-	{"==", EQ},				 // equal
-	{"^-?[1-9]+[0-9]*", Dec} // 十进制
+	{"==", EQ},					// equal
+	{"!=", NOTEQ},
+	{"!", NOT},
+	{"\\&&", AND},
+	{"\\|\\|", OR},
+	{"\\$zero|\\$at|\\$v0|v1|\\$a0|\\$a1|\\$a2|\\$a3|\\$t0|\\$t1|\\$t2|\\$t3|\\$t4|\\$t5|\\$t6|\\$t7|\\$s0|\\$s1|\\$s2|\\$s3|\\$s4|\\$s5|\\$s6|\\$s7|\\$t8|\\$t9|\\$k0|\\$k1|\\$gp|\\$sp|\\$fp|\\$ra|\\$pc", Reg},
+	{"0[xX][0-9a-fA-F]+", Hex}, // 十六进制
+	{"^-?[0-9]+[0-9]*", Dec}	// 十进制
+	
 };
 
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]))
@@ -100,6 +117,8 @@ static bool make_token(char *e)
 				switch (rules[i].token_type)
 				{
 				case Dec:
+				case Hex:
+				case Reg:
 					tokens[nr_token].type = rules[i].token_type;
 					for (int j = 0; j < substr_len; j++)
 						tokens[nr_token].str[j] = substr_start[j];
@@ -107,21 +126,16 @@ static bool make_token(char *e)
 					nr_token++;
 					break;
 				case '+':
-					tokens[nr_token++].type = rules[i].token_type;
-					break;
 				case '-':
-					tokens[nr_token++].type = rules[i].token_type;
-					break;
 				case '/':
-					tokens[nr_token++].type = rules[i].token_type;
-					break;
 				case '*':
-					tokens[nr_token++].type = rules[i].token_type;
-					break;
 				case lPar:
-					tokens[nr_token++].type = rules[i].token_type;
-					break;
 				case rPar:
+				case EQ:
+				case NOTEQ:
+				case NOT:
+				case AND:
+				case OR:
 					tokens[nr_token++].type = rules[i].token_type;
 					break;
 				case NOTYPE:
@@ -143,10 +157,11 @@ static bool make_token(char *e)
 
 	return true;
 }
+
 int check_parentheses(int p, int q)
 {
 	int parten = 0;
-	int tag = tokens[p].type == lPar?1:0;
+	int tag = tokens[p].type == lPar ? 1 : 0;
 
 	for (int i = p; i <= q; i++)
 	{
@@ -156,13 +171,56 @@ int check_parentheses(int p, int q)
 			parten--;
 		if (tokens[i].type == lPar)
 			parten++;
-		if (parten == 0 && i!=q) tag = 0;
+		if (parten == 0 && i != q)
+			tag = 0;
 	}
-	Log("%d", parten);
 	if (parten > 0)
 		assert(0);
 
 	return tag;
+}
+
+int c2i(char ch)
+{
+	// 如果是数字，则用数字的ASCII码减去48, 如果ch = '2' ,则 '2' - 48 = 2
+	if (isdigit(ch))
+		return ch - 48;
+
+	// 如果是字母，但不是A~F,a~f则返回
+	if (ch < 'A' || (ch > 'F' && ch < 'a') || ch > 'z')
+		return -1;
+
+	// 如果是大写字母，则用数字的ASCII码减去55, 如果ch = 'A' ,则 'A' - 55 = 10
+	// 如果是小写字母，则用数字的ASCII码减去87, 如果ch = 'a' ,则 'a' - 87 = 10
+	if (isalpha(ch))
+		return isupper(ch) ? ch - 55 : ch - 87;
+
+	return -1;
+}
+
+// 功能：将十六进制字符串转换为整型(int)数值
+int hex2dec(char *hex)
+{
+	int len;
+	int num = 0;
+	int temp;
+	int bits;
+	int i;
+
+	len = strlen(hex);
+
+	for (i = 2, temp = 0; i < len; i++, temp = 0)
+	{
+		temp = c2i(*(hex + i));
+		bits = (len - i - 1) * 4;
+		temp = temp << bits;
+
+		// 此处也可以用 num += temp;进行累加
+		num = num | temp;
+	}
+
+	// 返回结果
+	return num;
 }
 
 int eval(int p, int q)
@@ -171,8 +229,22 @@ int eval(int p, int q)
 		return -1;
 	else if (p == q)
 	{
-		Log("%s", tokens[p].str);
-		return atoi(tokens[p].str);
+		//Log("%s", tokens[p].str);
+		if (tokens[p].type == Dec)
+			return atoi(tokens[p].str);
+		else if(tokens[p].type == Hex)
+			return hex2dec(tokens[p].str);
+		else 
+		{
+			for(int i=0; i<32; i++)
+			{
+				if(!strcmp(tokens[p].str, regfile[i])){
+					//Log("%s %d", regfile[i],cpu.gpr[i]._32);
+					return cpu.gpr[i]._32;
+				}
+			}
+			return cpu.pc;
+		}
 	}
 	else if (check_parentheses(p, q) == true)
 	{
@@ -182,43 +254,75 @@ int eval(int p, int q)
 	{
 		int op = -1; // 寻找分割符号
 		char op_type = 0;
-		int lowerpri = 0; // 是否有更低优先级
-		int inPar = 0; // 如果当前符号在括号里就不能作为分割符号
+		int priority = 100; // 最低优先级
+		int inPar = 0;	  // 如果当前符号在括号里就不能作为分割符号
 		for (int i = 0; i < q - p; i++)
 		{
-			if ((tokens[i + p].type == '+' || tokens[i + p].type == '-') && inPar == 0)
+			if (tokens[i + p].type == NOT && priority >= 5 && inPar == 0)
 			{
 				op = i + p;
 				op_type = tokens[i + p].type;
-				lowerpri = 1;
+				priority = 5;
 			}
-			if ((tokens[i + p].type == '*' || tokens[i + p].type == '/') && lowerpri == 0 && inPar == 0)
+			if ((tokens[i + p].type == '*' || tokens[i + p].type == '/') && priority >= 4 && inPar == 0)
 			{
 				op = i + p;
 				op_type = tokens[i + p].type;
+				priority = 4;
+			}
+			if ((tokens[i + p].type == '+' || tokens[i + p].type == '-') && priority >= 3 && inPar == 0)
+			{
+				op = i + p;
+				op_type = tokens[i + p].type;
+				priority = 3;
+			}
+			if((tokens[i + p].type == EQ || tokens[i + p].type == NOTEQ) && priority >= 2 && inPar == 0)
+			{
+				op = i + p;
+				op_type = tokens[i + p].type;
+				priority = 2;
+			}
+			if(tokens[i + p].type == AND  && priority >= 1 && inPar == 0)
+			{
+				op = i + p;
+				op_type = tokens[i + p].type;
+				priority = 1;
+			}
+			if(tokens[i + p].type == OR  && priority >= 0 && inPar == 0)
+			{
+				op = i + p;
+				op_type = tokens[i + p].type;
+				priority = 0;
 			}
 			if (tokens[i + p].type == lPar)
-				inPar = 1;
+				inPar += 1;
 			if (tokens[i + p].type == rPar)
-				inPar = 0;
+				inPar -= 1;
 		}
-		Log("%d", op);
+
 		int val1 = eval(p, op - 1);
 		int val2 = eval(op + 1, q);
+		//Log("%d %d", val1, val2);
 		switch (op_type)
 		{
 		case '+':
 			return val1 + val2;
-			break;
 		case '-':
 			return val1 - val2;
-			break;
 		case '/':
 			return val1 / val2;
-			break;
 		case '*':
 			return val1 * val2;
-			break;
+		case EQ:
+			return val1 == val2;
+		case NOTEQ:
+			return val1 != val2;
+		case NOT:
+			return !val2;
+		case AND:
+			return val1 && val2;
+		case OR:
+			return val1 || val2;			 
 		default:
 			assert(0);
 		}
@@ -233,8 +337,8 @@ uint32_t expr(char *e, bool *success)
 		*success = false;
 		return 0;
 	}
-	printf("%d\n", eval(0, nr_token - 1));
+	//printf("%d\n", eval(0, nr_token - 1));
 	/* TODO: Insert codes to evaluate the expression. */
 	//panic("please implement me");
-	return 0;
+	return eval(0, nr_token - 1);
 }
