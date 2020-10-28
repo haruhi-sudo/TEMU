@@ -3,5 +3,6 @@
 
 make_helper(lui);
 make_helper(ori);
+make_helper(or);
 
 #endif

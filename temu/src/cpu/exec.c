@@ -39,7 +39,7 @@ op_fun _2byte_opcode_table [64] = {
 /* 0x18 */	inv, inv, inv, inv, 
 /* 0x1c */	inv, inv, inv, inv, 
 /* 0x20 */	inv, inv, inv, inv, 
-/* 0x24 */	and, inv, inv, inv,
+/* 0x24 */	and, or, inv, inv,
 /* 0x28 */	inv, inv, inv, inv, 
 /* 0x2c */	inv, inv, inv, inv, 
 /* 0x30 */	inv, inv, inv, inv, 
